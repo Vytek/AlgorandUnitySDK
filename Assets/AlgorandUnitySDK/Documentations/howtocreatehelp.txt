@@ -1,0 +1,7 @@
+19.03 08/05/2021
+
+1) Terminal command client
+2) Rename Scritps to src
+3) wyam new --recipe Docs
+4) wyam --recipe Docs
+5) See Output Dir API
