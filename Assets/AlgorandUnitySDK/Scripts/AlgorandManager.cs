@@ -15,7 +15,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
 {
     [SerializeField]
     protected string m_PlayerName;
-    protected string _Version = "0.10 Alfa";
+    protected string _Version = "0.11 Alfa";
     protected Account _AMAccount = null;
     private const string _InternalPassword = "0sIhlNRkMfDH8J9cC0Ky";
 
@@ -46,6 +46,11 @@ public class AlgorandManager : Singleton<AlgorandManager>
     {
         return _Version;
     }
+    
+    /// <summary>
+    /// Get Actual Player Name
+    /// </summary>
+    /// <returns>Player Name</returns>
     public string GetPlayerName()
     {
         return m_PlayerName;
@@ -55,7 +60,6 @@ public class AlgorandManager : Singleton<AlgorandManager>
         Debug.Log("Algorand Manager stopped.");
 
     }
-
     //Publics Methods
 
     /// <summary>
