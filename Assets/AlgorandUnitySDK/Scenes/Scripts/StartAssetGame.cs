@@ -44,7 +44,7 @@ public class StartAssetGame : MonoBehaviour
                 10,
                 0,
                 "http://this.test.com",
-                "16efaa3924a6fd9d3a4880099a4ac65d",
+                "16efaa3924a6fd9d3a4880099a4ac65d", //https://github.com/RileyGe/dotnet-algorand-sdk/issues/23#issuecomment-843929304
                 "Test Tx for AlgorandUnitySDK: " + DateTime.Now.ToString()
             );
             */
