@@ -1,4 +1,4 @@
-18.26 17/05/2021
+18.47 22/05/2021
 
 https://github.com/NibbleByte/DevLocker
 https://www.patreon.com/posts/unity-3d-drag-22917454
@@ -6,3 +6,6 @@ https://github.com/Bunny83/SimpleJSON
 https://github.com/TakuKobayashi/UnityCipher
 https://github.com/TakuKobayashi/UnityThreadQueue
 https://github.com/sabresaurus/PlayerPrefsEditor
+https://github.com/gportelli/UnityScreenLogger
+https://github.com/Rfrixy/Generic-Unity-Object-Pooler
+https://github.com/Siccity/GLTFUtility

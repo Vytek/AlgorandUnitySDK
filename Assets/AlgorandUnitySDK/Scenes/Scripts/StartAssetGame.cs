@@ -4,6 +4,7 @@ using System;
 using UnityEngine;
 public class StartAssetGame : MonoBehaviour
 {
+    [TextArea]
     public string NewAccount = string.Empty;
     public string NewAddress = string.Empty;
 
@@ -18,7 +19,7 @@ public class StartAssetGame : MonoBehaviour
         else
         {
             //Load Algorand Account from encrypted PlayerPrefs
-            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayPrefs();
+            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayerPrefs();
             //Show Algorand Account Address
             Debug.Log(NewAddress);
             //Get Mnemonic Algorand Account Passphrase 

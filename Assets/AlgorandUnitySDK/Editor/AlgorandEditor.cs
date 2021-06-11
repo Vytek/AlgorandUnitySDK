@@ -12,6 +12,8 @@ public class AlgorandEditor : EditorWindow
         "MAINNET", "TESTNET", "BETANET",
     };
     Texture2D logo; //The Logo Texture
+    private string PasswordManager;
+    private string PasswordManagerRepeat;
 
     // Add menu named "Custom Window" to the menu.
     [MenuItem("Window/Algorand Manager Editor")]
@@ -57,6 +59,8 @@ public class AlgorandEditor : EditorWindow
         AlgorandSave.AlgorandURLEndpoint = EditorGUILayout.TextField("Algorand URL/End.Indexer:", AlgorandSave.AlgorandURLEndpointIndexer);
         AlgorandSave.AlgorandApiKey = EditorGUILayout.TextField("Algorand API Key:", AlgorandSave.AlgorandApiKey);
         AlgorandSave.AlgorandNetwork = EditorGUILayout.Popup("Algorand Network:", AlgorandSave.AlgorandNetwork, options);
+
+        EditorGUILayout.Space();
 
         if (AlgorandSave.AlgorandNetwork == 0)
         {
@@ -123,8 +127,12 @@ public class AlgorandEditor : EditorWindow
 
         if (ManagerPrefab == null)
         {
-            Object tempObject = PrefabUtility.CreateEmptyPrefab(fileLocation);
-            ManagerPrefab = PrefabUtility.ReplacePrefab(new GameObject(objectName), tempObject, ReplacePrefabOptions.ConnectToPrefab);
+            GameObject tempObject = new GameObject();
+            tempObject.name = objectName;
+            tempObject.AddComponent<AlgorandManager>();
+            ManagerPrefab = PrefabUtility.SaveAsPrefabAsset(tempObject, fileLocation);
+            PrefabUtility.InstantiatePrefab(ManagerPrefab);
+            Debug.Log("Algorand Manager: created and inserted.");
         }
 
         if (ManagerPrefab != null)

@@ -33,6 +33,7 @@ public class CoinColliderBlueNew : MonoBehaviour
         if (col.tag == "AlgorandCoin")
         {
             Destroy(col.gameObject);
+            //Play Sound
             _audioSource.clip = CoinSound;
             _audioSource.Play();
             Debug.Log("AlgorandCoin Collider!");

@@ -5,6 +5,7 @@ using TMPro;
 
 public class StartGameTest : MonoBehaviour
 {
+    [TextArea]
     public string NewAccount = string.Empty;
     public string NewAddress = string.Empty;
     [SerializeField] public TextMeshPro mTextRed;
@@ -31,7 +32,7 @@ public class StartGameTest : MonoBehaviour
         else
         {
             //Load Algorand Account from encrypted PlayerPrefs
-            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayPrefs();
+            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayerPrefs();
             //Show Algorand Account Address
             Debug.Log(NewAddress);
             //Get Mnemonic Algorand Account Passphrase 
@@ -47,8 +48,8 @@ public class StartGameTest : MonoBehaviour
             Debug.Log("URL ENPOINT INDEXER: " + AlgorandManager.Instance.ALGOD_URL_ENDPOINT_INDEXER);
             //Show Token Used
             Debug.Log("Token Used: " + AlgorandManager.Instance.ALGOD_TOKEN);
+            
             //Get Balances Account
-
             mTextRed.SetText(AmountRed.ToString());
             Debug.Log("Text: "+ mTextRed.text); 
             //mTextBlue =  GameObjectTracker.AllGameObjects [1].gameObject.GetComponent<TextMeshPro>();
@@ -70,18 +71,9 @@ public class StartGameTest : MonoBehaviour
                 );
                 Debug.Log("Amount Blue: "+AmountBlue);
                 Debug.Log("Amount Red: "+AmountRed);
-                //StartCoroutine (SyncCorutine());
             });
-
         }  
     }
-    private IEnumerator SyncCorutine(){
-		while (UnityThreadQueue.Instance.ExistQueueEvent) {
-			yield return null;
-		}
-        Debug.Log("Amount Red: "+AmountRed.ToString());
-        Debug.Log("Amount Blue: "+AmountBlue.ToString());
-	}
     void Update()
     {
         //if ((AmountRed == 0) || (AmountBlue == 0))

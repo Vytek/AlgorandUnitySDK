@@ -1,4 +1,28 @@
-﻿using System.Collections;
+﻿/*
+MIT License
+
+Copyright (c) 2021 enrico.speranza@gt50.org
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Text;
@@ -13,16 +37,21 @@ using Algorand.V2.Model;
 using Account = Algorand.Account;
 public class AlgorandManager : Singleton<AlgorandManager>
 {
+    [Header("Player Configuration:")]
     [SerializeField]
     protected string m_PlayerName;
-    protected string _Version = "0.11 Alfa";
+    protected string _Version = "0.16 Alfa";
     protected Account _AMAccount = null;
     private const string _InternalPassword = "0sIhlNRkMfDH8J9cC0Ky";
 
+    [Header("Algorand Configuration:")]
+    [Tooltip("ALGOD/PureStake URL Endpoint")]
     [SerializeField]
     public string ALGOD_URL_ENDPOINT = string.Empty;
+    [Tooltip("ALGOD/PureStake Token")]
     [SerializeField]
     public string ALGOD_TOKEN = string.Empty;
+    [Tooltip("INDEXER/PureStake URL Endpoint")]
     [SerializeField]
     public string ALGOD_URL_ENDPOINT_INDEXER = string.Empty;
 
@@ -46,7 +75,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
     {
         return _Version;
     }
-    
+
     /// <summary>
     /// Get Actual Player Name
     /// </summary>
@@ -58,7 +87,6 @@ public class AlgorandManager : Singleton<AlgorandManager>
     protected virtual void OnApplicationQuit()
     {
         Debug.Log("Algorand Manager stopped.");
-
     }
     //Publics Methods
 
@@ -93,7 +121,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
     /// <summary>
     /// Generate a new Algorand Account, save crypted in PlayerPrefs and in AlgorandManager instance
     /// </summary>
-    /// <returns>Algorand Account Address</returns>
+    /// <returns>Algorand Account Address generated</returns>
     public string GenerateAccountAndSave()
     {
         if (_AMAccount == null)
@@ -118,9 +146,45 @@ public class AlgorandManager : Singleton<AlgorandManager>
     }
 
     /// <summary>
+    /// Generate a new Algorand Account, save crypted in PlayerPrefs and in AlgorandManager instance crypted with Password by User
+    /// </summary>
+    /// <param name="Password">Password passed from UI by User</param>
+    /// <returns>Algorand Account Address generated</returns>
+    public string GenerateAccountAndSave(string Password)
+    {
+        if (_AMAccount == null)
+        {
+            _AMAccount = new Account();
+            //Save encrypted Mnemonic Algorand Account in PlayPrefs
+            if (!PlayerPrefs.HasKey("AlgorandAccountSDK"))
+            {
+                if (!String.IsNullOrEmpty(Password))
+                {
+                    PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(_AMAccount.ToMnemonic().ToString(), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                    return _AMAccount.Address.ToString();
+                }
+                else
+                {
+                    Debug.LogError("Password passed is Null or empty!");
+                    throw new InvalidOperationException("Password passed is Null or empty!");
+                }
+            }
+            else
+            {
+                Debug.LogError("There is already an account saved in PlayerPrefs!");
+                throw new InvalidOperationException("There is already an account saved in PlayerPrefs!");
+            }
+        }
+        else
+        {
+            return _AMAccount.Address.ToString();
+        }
+    }
+
+    /// <summary>
     /// Save Algorand Account in encrypted PlayPrefs
     /// </summary>
-    /// <param name="Passphrase"></param>
+    /// <param name="Passphrase">Mnemonic Algorand Account</param>
     /// <returns>True if saved</returns>
     public Boolean SaveAccountInPlayerPrefs(string Passphrase)
     {
@@ -146,10 +210,47 @@ public class AlgorandManager : Singleton<AlgorandManager>
     }
 
     /// <summary>
+    /// Save Algorand Account in encrypted PlayPrefs crypted with Password by User
+    /// </summary>
+    /// <param name="Passphrase">Mnemonic Algorand Account</param>
+    /// <param name="Password">Password passed from UI by User</param>
+    /// <returns>True if saved</returns>
+    public Boolean SaveAccountInPlayerPrefs(string Passphrase, string Password)
+    {
+        if (!String.IsNullOrEmpty(Passphrase))
+        {
+            //Save encrypted Mnemonic Algorand Account in PlayPrefs
+            if (!PlayerPrefs.HasKey("AlgorandAccountSDK"))
+            {
+                if (!String.IsNullOrEmpty(Password))
+                {
+                    PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(Passphrase, Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                    return true;
+                }
+                else
+                {
+                    Debug.LogError("Password passed is Null or empty!");
+                    throw new InvalidOperationException("Password passed is Null or empty!");
+                }
+            }
+            else
+            {
+                Debug.LogError("There is already an account saved in PlayerPrefs!");
+                throw new InvalidOperationException("There is already an account saved in PlayerPrefs!");
+            }
+        }
+        else
+        {
+            Debug.LogError("Passphrase passed is Null or empty!");
+            throw new InvalidOperationException("Passphrase passed is Null or empty!");
+        }
+    }
+
+    /// <summary>
     /// Load Account from PlayPrefs and use in Algorand Manager instance
     /// </summary>
     /// <returns>Algorand Account Address saved in PlayPrefs</returns>
-    public string LoadAccountFromPlayPrefs()
+    public string LoadAccountFromPlayerPrefs()
     {
         //Load encrypted Mnemonic Algorand Account from PlayPrefs
         if (PlayerPrefs.HasKey("AlgorandAccountSDK"))
@@ -164,6 +265,61 @@ public class AlgorandManager : Singleton<AlgorandManager>
                 Debug.LogError("There is already an account loaded!");
                 throw new InvalidOperationException("There is already an account loaded!");
             }
+        }
+        else
+        {
+            Debug.LogError("PlayPrefs does not contain a saved Algorand Account");
+            throw new InvalidOperationException("PlayPrefs does not contain a saved Algorand Account");
+        }
+    }
+
+    /// <summary>
+    /// Load Account from PlayPrefs and use in Algorand Manager instance decrypted with Password by User
+    /// </summary>
+    /// <param name="Password">Password passed from UI by User</param>
+    /// <returns>Algorand Account Address saved in PlayPrefs</returns>
+    public string LoadAccountFromPlayerPrefs(string Password)
+    {
+        //Load encrypted Mnemonic Algorand Account from PlayPrefs
+        if (PlayerPrefs.HasKey("AlgorandAccountSDK"))
+        {
+            if (_AMAccount == null)
+            {
+                if (!String.IsNullOrEmpty(Password))
+                {
+                    _AMAccount = new Account(RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                    return _AMAccount.Address.ToString();
+                }
+                else
+                {
+                    Debug.LogError("Password passed is Null or empty!");
+                    throw new InvalidOperationException("Password passed is Null or empty!");
+                }
+            }
+            else
+            {
+                Debug.LogError("There is already an account loaded!");
+                throw new InvalidOperationException("There is already an account loaded!");
+            }
+        }
+        else
+        {
+            Debug.LogError("PlayPrefs does not contain a saved Algorand Account");
+            throw new InvalidOperationException("PlayPrefs does not contain a saved Algorand Account");
+        }
+    }
+
+    /// <summary>
+    /// Delete actual Algorand Account from PlayerPrefs
+    /// WARNING: this method will irrevocably delete your account from PlayerPrefs!
+    /// </summary>
+    /// <returns>Boolean true if procedure went ok</returns>
+    public bool DeleteAccountFromPlayerPrefs()
+    {
+        if (PlayerPrefs.HasKey("AlgorandAccountSDK"))
+        {
+            PlayerPrefs.DeleteKey("AlgorandAccountSDK");
+            return true;
         }
         else
         {
@@ -408,8 +564,9 @@ public class AlgorandManager : Singleton<AlgorandManager>
     /// <param name="AlgodURLEndpointIndexer">URL/Endpoint Algod Indexer</param>
     /// <param name="AlgodToken">API Key token</param>
     /// <param name="AlgorandAccount">Valid Algorand Account Address</param>
-    /// <returns>Amount Account</returns>
-    public string GetAccount(string AlgodURLEndpointIndexer, string AlgodToken, string AlgorandAccount)
+    /// <param name="JsonOrString">Booleand to return Json (True, default) Or String (False)</param>
+    /// <returns>Amount Account or JSON Account Info</returns>
+    public string GetAccount(string AlgodURLEndpointIndexer, string AlgodToken, string AlgorandAccount, bool JsonOrString = true)
     {
         if (string.IsNullOrEmpty(AlgodURLEndpointIndexer) || string.IsNullOrEmpty(AlgodToken) || string.IsNullOrEmpty(AlgorandAccount))
         {
@@ -432,7 +589,14 @@ public class AlgorandManager : Singleton<AlgorandManager>
                     // This is generally expected, but should give us an informative error message.
                     Debug.LogError("Exception when calling Indexer#GetAccount: " + e.Message);
                 }
-                return acctInfo.Account.Amount.ToString();
+                if (JsonOrString)
+                {
+                    return acctInfo.ToJson();
+                }
+                else
+                {
+                    return acctInfo.Account.Amount.ToString();
+                }
             }
             else
             {
@@ -448,6 +612,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
     /// <param name="AlgodURLEndpointIndexer">URL/Endpoint Algod Indexer</param>
     /// <param name="AlgodToken">API Key token</param>
     /// <param name="AssetID">Algorand Asset ID</param>
+    /// <param name="JsonOrString">Booleand to return Json (True, default) Or String (False)</param>
     /// <returns>Complete JSON response or single string Index</returns>
     public string GetAsset(string AlgodURLEndpointIndexer, string AlgodToken, long? AssetID, bool JsonOrString = true)
     {
@@ -894,15 +1059,15 @@ public class AlgorandManager : Singleton<AlgorandManager>
     }
     //Asset Transfert
     /// <summary>
-    /// 
+    /// Create a transaction ASA https://developer.algorand.org/docs/features/asa/#transferring-an-asset
     /// </summary>
-    /// <param name="AlgodURLEndpoint"></param>
-    /// <param name="AlgodToken"></param>
-    /// <param name="ToAccountAddress"></param>
-    /// <param name="AssetAmount"></param>
-    /// <param name="AssetID"></param>
-    /// <param name="Note"></param>
-    /// <returns></returns>
+    /// <param name="AlgodURLEndpoint">URL/Endpoint Algod</param>
+    /// <param name="AlgodToken">API Key token</param>
+    /// <param name="ToAccountAddress">Algorand Address Received ASA</param>
+    /// <param name="AssetAmount">Amount ASA to send</param>
+    /// <param name="AssetID">Asset ID to transfer</param>
+    /// <param name="Note">Trnasfert Transaction Note</param>
+    /// <returns>Transaction ID (TxID)</returns>
     public string AssetTransfer(string AlgodURLEndpoint, string AlgodToken, string ToAccountAddress,
     ulong AssetAmount, long? AssetID, string Note = "")
     {
@@ -938,7 +1103,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
                 Debug.LogError("Passed ToAccountAddress is invalid!");
                 throw new ArgumentException("Passed ToAccountAddress is invalid!");
             }
-            
+
             AlgodApi algodApiInstance = new AlgodApi(AlgodURLEndpoint, AlgodToken);
 
             TransactionParametersResponse transParams;
@@ -978,7 +1143,166 @@ public class AlgorandManager : Singleton<AlgorandManager>
         }
     }
     //Asset Freeze
+    /// <summary>
+    /// Freeze Asset https://developer.algorand.org/docs/features/asa/#freezing-an-asset
+    /// </summary>
+    /// <param name="AlgodURLEndpoint">URL/Endpoint Algod</param>
+    /// <param name="AlgodToken">API Key token</param>
+    /// <param name="AddressFreeze">Algorand Address Freeze Target</param>
+    /// <param name="AssetID">Asset ID to transfer</param>
+    /// <param name="Note">Trnasfert Transaction Note</param>
+    /// <returns>Transaction ID (TxID)</returns>
+    public string FreezeAsset(string AlgodURLEndpoint, string AlgodToken, string AddressFreeze, long? AssetID, string Note = "")
+    {
+        if (string.IsNullOrEmpty(AlgodURLEndpoint) || string.IsNullOrEmpty(AlgodToken))
+        {
+            Debug.LogError("AlgodURLEndpoint or AlgodToken are null or empty!");
+            throw new ArgumentException("AlgodURLEndpoint or AlgodToken are null or empty!");
+        }
+        else
+        {
+            //Check passed Arguments and internal objects
+            if (_AMAccount != null)
+            {
+                Debug.Log("Algorand Account: " + _AMAccount.Address.ToString());
+            }
+            else
+            {
+                Debug.LogError("Account not generated yet!");
+                throw new InvalidOperationException("Account not generated yet!");
+            }
+            if (!AssetID.HasValue)
+            {
+                Debug.LogError("AssetID has no value!");
+                throw new ArgumentException("AssetID has no value!", "AssetID");
+            }
+            if (Note.Length > 1000)
+            {
+                Debug.LogError("Note must be a maximum of 1000 bytes!");
+                throw new ArgumentException("Note must be a maximum of 1000 bytes!", "Note");
+            }
+            if (!this.AddressIsValid(AddressFreeze))
+            {
+                Debug.LogError("Passed AddressFreeze is invalid!");
+                throw new ArgumentException("Passed AddressFreeze is invalid!");
+            }
+
+            AlgodApi algodApiInstance = new AlgodApi(AlgodURLEndpoint, AlgodToken);
+
+            TransactionParametersResponse transParams;
+            try
+            {
+                transParams = algodApiInstance.TransactionParams();
+            }
+            catch (ApiException e)
+            {
+                Debug.LogError("Could not get params: " + e.Message);
+                throw new Exception("Could not get params", e);
+            }
+            var tx = Utils.GetFreezeAssetTransaction(_AMAccount.Address, new Address(AddressFreeze), AssetID, true, transParams, Note);
+            var signedTx = _AMAccount.SignTransaction(tx);
+
+            Debug.Log("Signed transaction with txid: " + signedTx.transactionID);
+
+            PostTransactionsResponse id = null;
+            // send the transaction to the network
+            try
+            {
+                id = Utils.SubmitTransaction(algodApiInstance, signedTx);
+                Debug.Log("Successfully sent tx with id: " + id.TxId);
+                var resp = Utils.WaitTransactionToComplete(algodApiInstance, id.TxId);
+                Debug.Log("Confirmed Round is: " + resp.ConfirmedRound);
+            }
+            catch (ApiException e)
+            {
+                // This is generally expected, but should give us an informative error message.
+                Debug.LogError("Exception when calling algod#rawTransaction: " + e.Message);
+            }
+            Debug.Log("Algorand transaction to Freeze Asset completed.");
+            return id.TxId;
+        }
+    }
     //Asset Revoke
+    /// <summary>
+    /// Revoke Asset https://developer.algorand.org/docs/features/asa/#revoking-an-asset
+    /// </summary>
+    /// <param name="AlgodURLEndpoint">URL/Endpoint Algod</param>
+    /// <param name="AlgodToken">API Key token</param>
+    /// <param name="AddressRevoke">Algorand Address to revoke target</param>
+    /// <param name="AssetAmount">Amount ASA to revoke</param>
+    /// <param name="AssetID">Asset ID to transfer</param>
+    /// <param name="Note">Trnasfert Transaction Note</param>
+    /// <returns>Transaction ID (TxID)</returns>
+    public string RevokeAsset(string AlgodURLEndpoint, string AlgodToken, string AddressRevoke, ulong AssetAmount, long? AssetID, string Note = "")
+    {
+        if (string.IsNullOrEmpty(AlgodURLEndpoint) || string.IsNullOrEmpty(AlgodToken))
+        {
+            Debug.LogError("AlgodURLEndpoint or AlgodToken are null or empty!");
+            throw new ArgumentException("AlgodURLEndpoint or AlgodToken are null or empty!");
+        }
+        else
+        {
+            //Check passed Arguments and internal objects
+            if (_AMAccount != null)
+            {
+                Debug.Log("Algorand Account: " + _AMAccount.Address.ToString());
+            }
+            else
+            {
+                Debug.LogError("Account not generated yet!");
+                throw new InvalidOperationException("Account not generated yet!");
+            }
+            if (!AssetID.HasValue)
+            {
+                Debug.LogError("AssetID has no value!");
+                throw new ArgumentException("AssetID has no value!", "AssetID");
+            }
+            if (Note.Length > 1000)
+            {
+                Debug.LogError("Note must be a maximum of 1000 bytes!");
+                throw new ArgumentException("Note must be a maximum of 1000 bytes!", "Note");
+            }
+            if (!this.AddressIsValid(AddressRevoke))
+            {
+                Debug.LogError("Passed AddressRevoke is invalid!");
+                throw new ArgumentException("Passed AddressRevoke is invalid!");
+            }
+
+            AlgodApi algodApiInstance = new AlgodApi(AlgodURLEndpoint, AlgodToken);
+
+            TransactionParametersResponse transParams;
+            try
+            {
+                transParams = algodApiInstance.TransactionParams();
+            }
+            catch (ApiException e)
+            {
+                Debug.LogError("Could not get params: " + e.Message);
+                throw new Exception("Could not get params", e);
+            }
+            var tx = Utils.GetRevokeAssetTransaction(_AMAccount.Address, new Address(AddressRevoke), _AMAccount.Address, AssetID, AssetAmount, transParams, Note);
+            var signedTx = _AMAccount.SignTransaction(tx);
+
+            Debug.Log("Signed transaction with txid: " + signedTx.transactionID);
+
+            PostTransactionsResponse id = null;
+            // send the transaction to the network
+            try
+            {
+                id = Utils.SubmitTransaction(algodApiInstance, signedTx);
+                Debug.Log("Successfully sent tx with id: " + id.TxId);
+                var resp = Utils.WaitTransactionToComplete(algodApiInstance, id.TxId);
+                Debug.Log("Confirmed Round is: " + resp.ConfirmedRound);
+            }
+            catch (ApiException e)
+            {
+                // This is generally expected, but should give us an informative error message.
+                Debug.LogError("Exception when calling algod#rawTransaction: " + e.Message);
+            }
+            Debug.Log("Algorand transaction to Revoke Asset completed.");
+            return id.TxId;
+        }
+    }
     //Asset Destroy
     /// <summary>
     /// Destroy Asset https://developer.algorand.org/docs/features/asa/#destroying-an-asset
@@ -1052,6 +1376,85 @@ public class AlgorandManager : Singleton<AlgorandManager>
             }
             Debug.Log("Algorand transaction to Destroy Asset completed.");
             return id.TxId;
+        }
+    }
+    
+    //Rekey Transaction
+    /// <summary>
+    /// Rekey-to Transaction¶ https://developer.algorand.org/docs/features/accounts/rekey/
+    /// </summary>
+    /// <param name="AlgodURLEndpoint">URL/Endpoint Algod</param>
+    /// <param name="AlgodToken">API Key token</param>
+    /// <param name="ToReKeyAccountAddress">Algorand valid Address to rekey</param>
+    /// <param name="Note">Rekey Transaction note</param>
+    /// <returns>Transaction ID (TxID)</returns>
+    public string MakeReKeyTransaction(string AlgodURLEndpoint, string AlgodToken, string ToReKeyAccountAddress, string Note)
+    {
+        if (string.IsNullOrEmpty(AlgodURLEndpoint) || string.IsNullOrEmpty(AlgodToken))
+        {
+            Debug.LogError("AlgodURLEndpoint or AlgodToken are null or empty!");
+            throw new ArgumentException("AlgodURLEndpoint or AlgodToken are null or empty!");
+        }
+        else
+        {
+            //Check passed Arguments and internal objects
+            if (_AMAccount != null)
+            {
+                Debug.Log("Algorand Account: " + _AMAccount.Address.ToString());
+            }
+            else
+            {
+                Debug.LogError("Account not generated yet!");
+                throw new InvalidOperationException("Account not generated yet!");
+            }
+            if (Note.Length > 1000)
+            {
+                Debug.LogError("Note must be a maximum of 1000 bytes!");
+                throw new ArgumentException("Note must be a maximum of 1000 bytes!", "Note");
+            }
+            if (!this.AddressIsValid(ToReKeyAccountAddress))
+            {
+                Debug.LogError("Passed ToReKeyAccountAddress is invalid!");
+                throw new ArgumentException("Passed ToReKeyAccountAddress is invalid!");
+            }
+            else
+            {
+                AlgodApi algodApiInstance = new AlgodApi(AlgodURLEndpoint, AlgodToken);
+
+                TransactionParametersResponse transParams;
+                try
+                {
+                    transParams = algodApiInstance.TransactionParams();
+                }
+                catch (ApiException e)
+                {
+                    Debug.LogError("Could not get params: " + e.Message);
+                    throw new Exception("Could not get params", e);
+                }
+                var amount = Utils.AlgosToMicroalgos(0.001);
+                var tx = Utils.GetPaymentTransaction(_AMAccount.Address, _AMAccount.Address, amount, Note, transParams);
+                tx.RekeyTo = new Address(ToReKeyAccountAddress);
+                var signedTx = _AMAccount.SignTransaction(tx);
+
+                Debug.Log("Signed transaction with txid: " + signedTx.transactionID);
+
+                PostTransactionsResponse id = null;
+                // send the transaction to the network
+                try
+                {
+                    id = Utils.SubmitTransaction(algodApiInstance, signedTx);
+                    Debug.Log("Successfully sent tx with id: " + id.TxId);
+                    var resp = Utils.WaitTransactionToComplete(algodApiInstance, id.TxId);
+                    Debug.Log("Confirmed Round is: " + resp.ConfirmedRound);
+                }
+                catch (ApiException e)
+                {
+                    // This is generally expected, but should give us an informative error message.
+                    Debug.LogError("Exception when calling algod#rawTransaction: " + e.Message);
+                }
+                Debug.Log("Algorand transaction to ReKey Address completed.");
+                return id.TxId;
+            }
         }
     }
     //SmartContract

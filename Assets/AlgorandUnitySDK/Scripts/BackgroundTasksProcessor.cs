@@ -119,10 +119,17 @@ namespace MHLab.Utilities
                     {
                         Task.Run(() =>
                         {
-                            var result = currentTask.Task.Invoke();
-                            currentTask.Result = result;
+                            try
+                            {
+                                var result = currentTask.Task.Invoke();
+                                currentTask.Result = result;
 
-                            _outputQueue.Enqueue(currentTask);
+                                _outputQueue.Enqueue(currentTask);
+                            }
+                            catch (Exception ex)
+                            {
+                               Debug.LogError($"Exception in Task execution: {ex.Message}");
+                            }    
                         });
                     }
                 }

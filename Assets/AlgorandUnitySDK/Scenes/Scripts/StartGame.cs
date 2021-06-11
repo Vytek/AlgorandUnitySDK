@@ -5,6 +5,7 @@ using SimpleJSON;
 
 public class StartGame : MonoBehaviour
 {
+    [TextArea]
     public string NewAccount = string.Empty;
     public string NewAddress =  string.Empty;
     
@@ -30,13 +31,13 @@ public class StartGame : MonoBehaviour
             Debug.Log(AlgorandManager.Instance.GetAddressAccount());
             //Verify Algorand Account Address passed
             Debug.Log("Valid Algorand Address: " + AlgorandManager.Instance.AddressIsValid(NewAddress));
-            //Save Algorand Account using Passphrase in AlgorandManager Instance in encrypted PlayPrefs
-            Debug.Log("Save Algorand Account in encrypted Playprefs: " + AlgorandManager.Instance.SaveAccountInPlayerPrefs(NewAccount));
+            //Save Algorand Account using Passphrase in AlgorandManager Instance in encrypted PlayerPrefs
+            Debug.Log("Save Algorand Account in encrypted PlayerPrefs: " + AlgorandManager.Instance.SaveAccountInPlayerPrefs(NewAccount));
         }
         else
         {
             //Load Algorand Account from encrypted PlayerPrefs
-            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayPrefs();
+            NewAddress = AlgorandManager.Instance.LoadAccountFromPlayerPrefs();
             //Show Algorand Account Address
             Debug.Log(NewAddress);
             //Get Mnemonic Algorand Account Passphrase 
@@ -71,7 +72,7 @@ public class StartGame : MonoBehaviour
         Debug.Log("Account Amount (KV2XGKMXGYJ6PWYQA5374BYIQBL3ONRMSIARPCFCJEAMAHQEVYPB7PL3KU): "+
         AlgorandManager.Instance.GetAccount(AlgorandManager.Instance.ALGOD_URL_ENDPOINT_INDEXER,
         AlgorandManager.Instance.ALGOD_TOKEN,
-        "KV2XGKMXGYJ6PWYQA5374BYIQBL3ONRMSIARPCFCJEAMAHQEVYPB7PL3KU"));
+        "KV2XGKMXGYJ6PWYQA5374BYIQBL3ONRMSIARPCFCJEAMAHQEVYPB7PL3KU"), false);
         */
         //GetAsset
         /*
