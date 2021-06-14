@@ -40,7 +40,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
     [Header("Player Configuration:")]
     [SerializeField]
     protected string m_PlayerName;
-    protected string _Version = "0.16 Alfa";
+    protected string _Version = "0.17 Alfa";
     protected Account _AMAccount = null;
     private const string _InternalPassword = "0sIhlNRkMfDH8J9cC0Ky";
 
