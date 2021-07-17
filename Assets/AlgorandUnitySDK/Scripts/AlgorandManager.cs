@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT License
 
 Copyright (c) 2021 enrico.speranza@gt50.org
@@ -36,12 +36,15 @@ using Algorand.Client;
 using Algorand.V2.Model;
 using Account = Algorand.Account;
 
+//Scrypt
+using Scrypt;
+
 public class AlgorandManager : Singleton<AlgorandManager>
 {
     [Header("Player Configuration:")]
     [SerializeField]
     protected string m_PlayerName;
-    protected string _Version = "0.17 Alfa";
+    protected string _Version = "0.18 Alfa";
     protected Account _AMAccount = null;
     private const string _InternalPassword = "0sIhlNRkMfDH8J9cC0Ky";
 
@@ -161,6 +164,10 @@ public class AlgorandManager : Singleton<AlgorandManager>
             {
                 if (!String.IsNullOrEmpty(Password))
                 {
+                    //Save hash                       
+                    ScryptEncoder encoder = new ScryptEncoder();
+                    PlayerPrefs.SetString("AlgorandAccountSDKHash", encoder.Encode(Password));
+
                     PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(_AMAccount.ToMnemonic().ToString(), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
                     return _AMAccount.Address.ToString();
                 }
@@ -223,15 +230,29 @@ public class AlgorandManager : Singleton<AlgorandManager>
             //Save encrypted Mnemonic Algorand Account in PlayPrefs
             if (!PlayerPrefs.HasKey("AlgorandAccountSDK"))
             {
-                if (!String.IsNullOrEmpty(Password))
+                //Save Hash using Scrypt
+                if (!PlayerPrefs.HasKey("AlgorandAccountSDKHash"))
                 {
-                    PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(Passphrase, Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
-                    return true;
+                    if (!String.IsNullOrEmpty(Password))
+                    {
+                        //Save hash                       
+                        ScryptEncoder encoder = new ScryptEncoder();
+                        PlayerPrefs.SetString("AlgorandAccountSDKHash", encoder.Encode(Password));
+
+                        //Crypt saved password
+                        PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(Passphrase, Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.LogError("Password passed is Null or empty!");
+                        throw new InvalidOperationException("Password passed is Null or empty!");
+                    }
                 }
                 else
                 {
-                    Debug.LogError("Password passed is Null or empty!");
-                    throw new InvalidOperationException("Password passed is Null or empty!");
+                    Debug.LogError("There is already an account hash saved in PlayerPrefs!");
+                    throw new InvalidOperationException("There is already an account hash saved in PlayerPrefs!");
                 }
             }
             else
@@ -288,8 +309,26 @@ public class AlgorandManager : Singleton<AlgorandManager>
             {
                 if (!String.IsNullOrEmpty(Password))
                 {
-                    _AMAccount = new Account(RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
-                    return _AMAccount.Address.ToString();
+                    if (PlayerPrefs.HasKey("AlgorandAccountSDKHash"))
+                    {
+                        //Check if password is correct!
+                        ScryptEncoder encoder = new ScryptEncoder();
+                        if (encoder.Compare(Password, PlayerPrefs.GetString("AlgorandAccountSDKHash")) == true)
+                        {
+                            _AMAccount = new Account(RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                            return _AMAccount.Address.ToString();
+                        }
+                        else
+                        {
+                            Debug.LogError("Entered password is incorrect!");
+                            throw new InvalidOperationException("Entered password is incorrect!");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError("There is already an account hash saved in PlayerPrefs!");
+                        throw new InvalidOperationException("There is already an account hash saved in PlayerPrefs!");
+                    }
                 }
                 else
                 {
@@ -320,6 +359,8 @@ public class AlgorandManager : Singleton<AlgorandManager>
         if (PlayerPrefs.HasKey("AlgorandAccountSDK"))
         {
             PlayerPrefs.DeleteKey("AlgorandAccountSDK");
+            //Delete always hash too (If the key does not exist, DeleteKey has no impact.)
+            PlayerPrefs.DeleteKey("AlgorandAccountSDKHash");
             return true;
         }
         else
@@ -1379,7 +1420,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
             return id.TxId;
         }
     }
-    
+
     //Rekey Transaction
     /// <summary>
     /// Rekey-to Transaction¶ https://developer.algorand.org/docs/features/accounts/rekey/
