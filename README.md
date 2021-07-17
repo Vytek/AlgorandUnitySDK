@@ -22,11 +22,12 @@
 - https://github.com/gportelli/UnityScreenLogger
 - https://github.com/Rfrixy/Generic-Unity-Object-Pooler
 - https://github.com/Siccity/GLTFUtility
+- https://github.com/viniciuschiele/Scrypt
 
 
 # Disclaimer
-Important disclaimer
+## Important disclaimer
 
-The project is not audited and should not be used in a production environment
+The project is not audited and should not be used in a production environment.
 
   
