@@ -9,3 +9,6 @@ https://github.com/sabresaurus/PlayerPrefsEditor
 https://github.com/gportelli/UnityScreenLogger
 https://github.com/Rfrixy/Generic-Unity-Object-Pooler
 https://github.com/Siccity/GLTFUtility
+https://github.com/viniciuschiele/Scrypt
+https://gist.github.com/HirbodBehnam/3bb3ae85e108153e7374b14d324cbaaf
+https://gist.github.com/charlesportwoodii/09ffd6868c2a6e55826c4d5ebb509651

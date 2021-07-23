@@ -38,6 +38,8 @@ using Account = Algorand.Account;
 
 //Scrypt
 using Scrypt;
+using System.Security.Cryptography;
+using Random = System.Random;
 
 public class AlgorandManager : Singleton<AlgorandManager>
 {
@@ -72,10 +74,34 @@ public class AlgorandManager : Singleton<AlgorandManager>
     }
 
     /// <summary>
+    /// Internal: String To Array of Bytes
+    /// </summary>
+    /// <param name="input">String to convert</param>
+    /// <returns>Array of Bytes</returns>
+    private static byte[] GetBytes(string input)
+    {
+        var byteArray = new byte[input.Length * sizeof(char)];
+        Buffer.BlockCopy(input.ToCharArray(), 0, byteArray, 0, byteArray.Length);
+        return byteArray;
+    }
+
+    /// <summary>
+    /// Internal: Array Bytes To String
+    /// </summary>
+    /// <param name="byteArray">Array of Bytes to convert</param>
+    /// <returns>String</returns>
+    private static string GetString(byte[] byteArray)
+    {
+        var characters = new char[byteArray.Length / sizeof(char)];
+        Buffer.BlockCopy(byteArray, 0, characters, 0, byteArray.Length);
+        return new string(characters);
+    }
+
+    /// <summary>
     /// Get AlgorandSDK Version
     /// </summary>
     /// <returns>AlgorandDSK Version</returns>
-	public string Version()
+    public string Version()
     {
         return _Version;
     }
@@ -164,11 +190,31 @@ public class AlgorandManager : Singleton<AlgorandManager>
             {
                 if (!String.IsNullOrEmpty(Password))
                 {
-                    //Save hash                       
+                    //Save hash                         
                     ScryptEncoder encoder = new ScryptEncoder();
-                    PlayerPrefs.SetString("AlgorandAccountSDKHash", encoder.Encode(Password));
+                    var hashedPassword = encoder.Encode(Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword);
+                    PlayerPrefs.SetString("AlgorandAccountSDKHash", hashedPassword);
 
-                    PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(_AMAccount.ToMnemonic().ToString(), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                    // * HKDF *
+                    // This is the hash algorithm to use
+                    var algorithm = HashAlgorithmName.SHA256;
+
+                    // ikm, info, and salt can be variable length - for an example we're just going to generate some random bytes
+                    var l = 0;
+                    var ikm = GetBytes(Password + hashedPassword);
+                    var salt = GetBytes("12345678901234567890123456789012");
+                    var info = GetBytes("algo");
+
+                    // Our HKDF can be calculated as follows.
+                    var hkdf = new HKDF(algorithm, ikm, info, l, salt);
+                    var hash = hkdf.hash;
+                    Debug.Log(Convert.ToBase64String(hash, 0, hash.Length));
+
+                    //Crypt using AESGCM
+                    var crypted = AESGCM.AesGcmEncrypt(_AMAccount.GetClearTextPrivateKey(), hash);
+                    Debug.Log(Convert.ToBase64String(crypted, 0, crypted.Length));
+                    //Crypt saved password
+                    PlayerPrefs.SetString("AlgorandAccountSDK", Convert.ToBase64String(crypted, 0, crypted.Length));
                     return _AMAccount.Address.ToString();
                 }
                 else
@@ -220,12 +266,12 @@ public class AlgorandManager : Singleton<AlgorandManager>
     /// <summary>
     /// Save Algorand Account in encrypted PlayPrefs crypted with Password by User
     /// </summary>
-    /// <param name="Passphrase">Mnemonic Algorand Account</param>
+    /// <param name="PirvateKey">Mnemonic Algorand Account</param>
     /// <param name="Password">Password passed from UI by User</param>
     /// <returns>True if saved</returns>
-    public Boolean SaveAccountInPlayerPrefs(string Passphrase, string Password)
+    public Boolean SaveAccountInPlayerPrefs(byte[] PrivateKey, string Password)
     {
-        if (!String.IsNullOrEmpty(Passphrase))
+        if (PrivateKey.Length != 0)
         {
             //Save encrypted Mnemonic Algorand Account in PlayPrefs
             if (!PlayerPrefs.HasKey("AlgorandAccountSDK"))
@@ -235,12 +281,37 @@ public class AlgorandManager : Singleton<AlgorandManager>
                 {
                     if (!String.IsNullOrEmpty(Password))
                     {
+                        //Use a password validator?
+                        //https://github.com/havardt/PasswordValidator (MIT)
+
                         //Save hash                       
                         ScryptEncoder encoder = new ScryptEncoder();
-                        PlayerPrefs.SetString("AlgorandAccountSDKHash", encoder.Encode(Password));
+                        var hashedPassword = encoder.Encode(Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword);
+                        //Debug.Log("Password: "+Password); //DEBUG * WARNING COMMENT IN RELEASE!
+                        Debug.Log("SystemInfo.deviceUniqueIdentifier: "+SystemInfo.deviceUniqueIdentifier); //DEBUG
+                        Debug.Log("_InternalPassword: "+_InternalPassword); //DEBUG
+                        PlayerPrefs.SetString("AlgorandAccountSDKHash", hashedPassword);
 
+                        // * HKDF *
+                        // This is the hash algorithm to use
+                        var algorithm = HashAlgorithmName.SHA256;
+
+                        // ikm, info, and salt can be variable length - for an example we're just going to generate some random bytes
+                        var l = 0;
+                        var ikm = GetBytes(Password + hashedPassword);
+                        var salt = GetBytes("12345678901234567890123456789012");
+                        var info = GetBytes("algo");
+
+                        // Our HKDF can be calculated as follows.
+                        var hkdf = new HKDF(algorithm, ikm, info, l, salt);
+                        var hash = hkdf.hash;
+                        Debug.Log("HKDF HASH: "+Convert.ToBase64String(hash, 0, hash.Length)); //DEBUG
+
+                        //Crypt using AESGCM
+                        var crypted = AESGCM.AesGcmEncrypt(PrivateKey, hash);
+                        Debug.Log("AESGCM Crypted: "+Convert.ToBase64String(crypted, 0, crypted.Length)); //DEBUG
                         //Crypt saved password
-                        PlayerPrefs.SetString("AlgorandAccountSDK", RijndaelEncryption.Encrypt(Passphrase, Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                        PlayerPrefs.SetString("AlgorandAccountSDK", Convert.ToBase64String(crypted, 0, crypted.Length));
                         return true;
                     }
                     else
@@ -263,8 +334,8 @@ public class AlgorandManager : Singleton<AlgorandManager>
         }
         else
         {
-            Debug.LogError("Passphrase passed is Null or empty!");
-            throw new InvalidOperationException("Passphrase passed is Null or empty!");
+            Debug.LogError("PrivateKey passed is Null or empty!");
+            throw new InvalidOperationException("PrivateKey passed is Null or empty!");
         }
     }
 
@@ -313,9 +384,31 @@ public class AlgorandManager : Singleton<AlgorandManager>
                     {
                         //Check if password is correct!
                         ScryptEncoder encoder = new ScryptEncoder();
-                        if (encoder.Compare(Password, PlayerPrefs.GetString("AlgorandAccountSDKHash")) == true)
+                        if (encoder.Compare(Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword, PlayerPrefs.GetString("AlgorandAccountSDKHash")) == true)
                         {
-                            _AMAccount = new Account(RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), Password + SystemInfo.deviceUniqueIdentifier + _InternalPassword));
+                            //Get hash from PlayerPrefs saved                      
+                            var hashedPassword = PlayerPrefs.GetString("AlgorandAccountSDKHash");
+
+                            // * HKDF *
+                            // This is the hash algorithm to use
+                            var algorithm = HashAlgorithmName.SHA256;
+
+                            // ikm, info, and salt can be variable length - for an example we're just going to generate some random bytes
+                            var l = 0;
+                            var ikm = GetBytes(Password + hashedPassword);
+                            var salt = GetBytes("12345678901234567890123456789012");
+                            var info = GetBytes("algo");
+
+                            // Our HKDF can be calculated as follows.
+                            var hkdf = new HKDF(algorithm, ikm, info, l, salt);
+                            var hash = hkdf.hash;
+                            Debug.Log("HKDF Hash: "+Convert.ToBase64String(hash, 0, hash.Length)); //DEBUG
+
+                            //Decrypt using AESGCM
+                            //Verify all ok in crypt and decrypt and from this code create function for AlgorandManager
+                            var decrypted = AESGCM.AesGcmDecrypt(Convert.FromBase64String(PlayerPrefs.GetString("AlgorandAccountSDK")), hash);
+
+                            _AMAccount = Algorand.Account.AccountFromPrivateKey(decrypted);
                             return _AMAccount.Address.ToString();
                         }
                         else
@@ -380,6 +473,23 @@ public class AlgorandManager : Singleton<AlgorandManager>
         if (_AMAccount != null)
         {
             return _AMAccount.Address.ToString();
+        }
+        else
+        {
+            Debug.LogError("Account not generated yet!");
+            throw new InvalidOperationException("Account not generated yet!");
+        }
+    }
+
+    /// <summary>
+    /// Return Private Key of Algorand Account
+    /// </summary>
+    /// <returns>Byte Array</returns>
+    public byte[] GetPrivateKey()
+    {
+        if (_AMAccount != null)
+        {
+            return _AMAccount.GetClearTextPrivateKey();
         }
         else
         {
