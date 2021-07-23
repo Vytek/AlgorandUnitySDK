@@ -13,7 +13,3 @@ Version 0.6 Alfa
 18.24 01/05/2021
 
 Version 0.2 Alfa
-
-19.07 23/07/2021
-
-Versione 0.18 Alfa
