@@ -46,7 +46,7 @@ public class AlgorandManager : Singleton<AlgorandManager>
     [Header("Player Configuration:")]
     [SerializeField]
     protected string m_PlayerName;
-    protected string _Version = "0.18 Alfa";
+    protected string _Version = "0.19 Alfa";
     protected Account _AMAccount = null;
     private const string _InternalPassword = "0sIhlNRkMfDH8J9cC0Ky";
 
@@ -350,6 +350,10 @@ public class AlgorandManager : Singleton<AlgorandManager>
         {
             if (_AMAccount == null)
             {
+                //Debug
+                //Debug.Log("Start debug decrypt...");
+                //string TestDecrypt = RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), SystemInfo.deviceUniqueIdentifier + _InternalPassword);
+                //Debug.LogWarning(TestDecrypt);
                 _AMAccount = new Account(RijndaelEncryption.Decrypt(PlayerPrefs.GetString("AlgorandAccountSDK"), SystemInfo.deviceUniqueIdentifier + _InternalPassword));
                 return _AMAccount.Address.ToString();
             }
